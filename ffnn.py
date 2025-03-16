@@ -10,7 +10,10 @@ import time
 from tqdm import tqdm
 import json
 from argparse import ArgumentParser
+import matplotlib.pyplot as plt
 
+train_losses = []
+valid_accuracies = []
 
 unk = '<UNK>'
 # Consult the PyTorch documentation for information on the functions used below:
@@ -136,6 +139,7 @@ if __name__ == "__main__":
         random.shuffle(train_data) # Good practice to shuffle order of training data
         minibatch_size = 16 
         N = len(train_data) 
+        epoch_loss = 0
         for minibatch_index in tqdm(range(N // minibatch_size)):
             optimizer.zero_grad()
             loss = None
@@ -151,8 +155,12 @@ if __name__ == "__main__":
                 else:
                     loss += example_loss
             loss = loss / minibatch_size
+            epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
+
+        avg_train_loss = epoch_loss / (N // minibatch_size)
+        train_losses.append(avg_train_loss)
         print("Training completed for epoch {}".format(epoch + 1))
         print("Training accuracy for epoch {}: {}".format(epoch + 1, correct / total))
         print("Training time for this epoch: {}".format(time.time() - start_time))
@@ -180,9 +188,21 @@ if __name__ == "__main__":
                 else:
                     loss += example_loss
             loss = loss / minibatch_size
+
+        validation_accuracy = correct / total
+        valid_accuracies.append(validation_accuracy)
         print("Validation completed for epoch {}".format(epoch + 1))
         print("Validation accuracy for epoch {}: {}".format(epoch + 1, correct / total))
         print("Validation time for this epoch: {}".format(time.time() - start_time))
 
     # write out to results/test.out
-    
+    # Plot learning curve
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(1, args.epochs + 1), train_losses, label="Training Loss", marker="o")
+    plt.plot(range(1, args.epochs + 1), valid_accuracies, label="Validation Accuracy", marker="s")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss / Accuracy")
+    plt.title("Learning Curve")
+    plt.legend()
+    plt.grid()
+    plt.show()    

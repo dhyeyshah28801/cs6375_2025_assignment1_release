@@ -12,7 +12,11 @@ import json
 import string
 from argparse import ArgumentParser
 import pickle
+import matplotlib.pyplot as plt
 
+train_losses = []
+valid_accuracies = []
+last_epoch = 0
 unk = '<UNK>'
 # Consult the PyTorch documentation for information on the functions used below:
 # https://pytorch.org/docs/stable/torch.html
@@ -103,6 +107,7 @@ if __name__ == "__main__":
 
         loss_total = 0
         loss_count = 0
+        epoch_loss = 0
         for minibatch_index in tqdm(range(N // minibatch_size)):
             optimizer.zero_grad()
             loss = None
@@ -137,8 +142,12 @@ if __name__ == "__main__":
             loss = loss / minibatch_size
             loss_total += loss.data
             loss_count += 1
+            epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
+
+        avg_train_loss = epoch_loss / (N // minibatch_size)
+        train_losses.append(avg_train_loss)
         print(loss_total/loss_count)
         print("Training completed for epoch {}".format(epoch + 1))
         print("Training accuracy for epoch {}: {}".format(epoch + 1, correct / total))
@@ -164,9 +173,10 @@ if __name__ == "__main__":
             correct += int(predicted_label == gold_label)
             total += 1
             # print(predicted_label, gold_label)
+        validation_accuracy = correct / total
+        valid_accuracies.append(validation_accuracy)
         print("Validation completed for epoch {}".format(epoch + 1))
         print("Validation accuracy for epoch {}: {}".format(epoch + 1, correct / total))
-        validation_accuracy = correct/total
 
         if validation_accuracy < last_validation_accuracy and trainning_accuracy > last_train_accuracy:
             stopping_condition=True
@@ -176,8 +186,18 @@ if __name__ == "__main__":
             last_validation_accuracy = validation_accuracy
             last_train_accuracy = trainning_accuracy
 
+        last_epoch = epoch
         epoch += 1
 
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(1, len(train_losses) + 1), train_losses, label="Training Loss", marker="o")
+    plt.plot(range(1, len(valid_accuracies) + 1), valid_accuracies, label="Validation Accuracy", marker="s")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss / Accuracy")
+    plt.title("Learning Curve")
+    plt.legend()
+    plt.grid()
+    plt.show()    
 
 
     # You may find it beneficial to keep track of training accuracy or training loss;
